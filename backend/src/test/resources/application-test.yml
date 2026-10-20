@@ -1,0 +1,44 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:mxxssm_test;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_batch_fetch_size: 50
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    clean-disabled: false
+  messages:
+    basename: messages
+    encoding: UTF-8
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+app:
+  captcha:
+    enabled: false
+  registration:
+    enabled: true
+
+logging:
+  level:
+    root: WARN
+    com.mxxssm: INFO
+    org.flywaydb: INFO
