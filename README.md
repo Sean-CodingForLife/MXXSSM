@@ -1,279 +1,358 @@
-# MySSM
+# MXXSSM
 
-MySSM is a legacy SSM learning project that has been reorganized into a generic backend management system template.
+**A modern, single-repository full-stack administration foundation.**
 
-It keeps the current Spring MVC + Spring + MyBatis + JSP stack for now. The goal of this stage is to make the old project clean, runnable, permission-aware, and suitable for pushing to GitHub. The Spring Boot + Vue 3 migration is intentionally left for a later phase.
+MXXSSM started life as a legacy Spring MVC + MyBatis + JSP learning project. This
+repository is a clean rewrite as a **modular monolith**: a Spring Boot API and a
+Vue 3 single-page application, built and deployed as one artifact.
 
-## Features
+[English](README.md) · [中文](README.zh-CN.md)
 
-- Unified login page for all accounts
-- Public user registration
-- BCrypt password storage
-- Login captcha based on EasyCaptcha
-- Session based authentication
-- RBAC authorization with users, roles, permissions, and menus
-- Dynamic dashboard and sidebar based on the logged-in user's permissions
-- Admin user management, including creating admin or normal user accounts
-- Role management and role-permission assignment
-- Menu and permission list pages
-- Login log and operation log pages
-- System config list page
-- `zh-CN` and `en-US` language switching
-- Bootstrap 5 based JSP UI with loading, toast, confirm, table, and pagination helpers
+---
 
-## Tech Stack
+## Highlights
 
-- Java 8 source/target compatibility
-- Spring Framework 5.3.x
-- Spring MVC
-- MyBatis 3.5.x
-- MyBatis-Spring
-- Spring Security Crypto
-- EasyCaptcha
-- Jackson
-- SLF4J + Logback
-- JSP + JSTL
-- Bootstrap 5 WebJar
-- MySQL
-- Maven
-- Tomcat 8.5 or Tomcat 9
+- **One deployable artifact** — the SPA is bundled into the Spring Boot jar and served by the same process.
+- **Modern backend** — Java 21, Spring Boot 3.5, Spring Security 6, Spring Data JPA, Flyway, MySQL 8, OpenAPI.
+- **Modern frontend** — Vue 3.5, Vite 7, TypeScript 5.9, Pinia, Vue Router, Element Plus, vue-i18n.
+- **Security by default** — session authentication, BCrypt (cost 12), CSRF protection, method-level RBAC, account status checks.
+- **Dynamic RBAC** — users ↔ roles ↔ permissions, database-driven sidebar menus, and authorization checks at the API boundary.
+- **Auditability** — login attempts and annotated administration actions are recorded with actor, IP, duration and outcome.
+- **Bilingual UI** — complete `zh-CN` / `en-US` dictionaries and server-side localized error messages.
+- **Developer experience** — one command for dev, one for build, Flyway migrations, H2 integration tests, ArchUnit rules, ESLint, Prettier, Vitest, GitHub Actions, Docker Compose.
 
-> Do not run this project on Tomcat 10 or 11. The project uses `javax.servlet.*`, while Tomcat 10+ uses `jakarta.servlet.*`.
+---
 
-## Project Structure
+## Architecture at a glance
 
 ```text
-MySSM/
-  database/
-    schema.sql
-  src/main/java/com/
-    controller/
-    dao/
-    interceptor/
-    message/
-    myTool/
-    po/
-    responseData/
-    security/
-    service/
-  src/main/resources/
-    applicationContext.xml
-    jdbc.properties
-    logback.xml
-    i18n/
-    com/mybatis/
-  src/main/webapp/
-    WEB-INF/jsp/
-    css/
-    images/
-    js/
-  pom.xml
-  README.md
+┌──────────────────────────────┐        ┌──────────────────────────────────────────┐
+│  Vue 3 SPA (Vite dev server) │        │  Spring Boot monolith (:8081)            │
+│                              │        │                                          │
+│  Router / Pinia / i18n       │  /api  │  Spring Security (session + CSRF)        │
+│  Axios API layer             │ ─────► │      │                                   │
+│  Element Plus UI             │        │  REST Controllers (@PreAuthorize)        │
+└──────────────────────────────┘        │      │                                   │
+                                        │  Services (transactions)                  │
+                                        │      │                                   │
+                                        │  Spring Data JPA ──► MySQL 8 (Flyway)    │
+                                        │      │                                   │
+                                        │  Audit AOP ──► login / operation logs    │
+                                        └──────────────────────────────────────────┘
 ```
 
-## Requirements
-
-- JDK 8 or later
-- Maven 3.x
-- MySQL 5.7 or compatible
-- Tomcat 8.5 or Tomcat 9
-- IntelliJ IDEA with Smart Tomcat, or IDEA Ultimate with built-in Tomcat support
-
-If port `8080` is occupied, change Tomcat to another port such as `8081`, or stop the process using that port.
-
-## Database Setup
-
-Create the database and tables:
-
-```sql
-source database/schema.sql;
-```
-
-If your MySQL client does not support `source`, open `database/schema.sql` in DataGrip, Navicat, MySQL Workbench, or IDEA Database Tools and execute it manually.
-
-The script creates the database:
+In production, `frontend/dist` is copied into the Spring Boot jar. One process,
+one port, no separate web server required.
 
 ```text
-myssm_admin
+MXXSSM/
+├── backend/                  Spring Boot application, Flyway migrations, tests
+│   └── src/main/java/com/mxxssm/
+│       ├── common/           API envelope, errors, security, audit, web filters
+│       ├── config/           OpenAPI, MVC and application properties
+│       └── modules/          auth, user, role, permission, menu, config, log, dashboard
+├── frontend/                 Vue 3 SPA, Element Plus, i18n, unit tests
+├── docs/                     Architecture and API documentation
+├── .github/workflows/        CI pipeline
+├── Dockerfile                Multi-stage Node + Maven + JRE image
+├── docker-compose.yml        MySQL 8.4 + application
+├── pom.xml                   Maven parent
+└── package.json              Root developer scripts
 ```
 
-Then update:
+---
+
+## Quick start
+
+### Prerequisites
+
+| Tool | Version |
+| --- | --- |
+| JDK | 21 or newer |
+| Maven | 3.9+ |
+| Node.js | 22.12+ |
+| pnpm | 10+ (repo pins 12.5.1) |
+| MySQL | 8.0+ |
+
+### 1. Prepare MySQL
+
+The default development profile connects to:
 
 ```text
-src/main/resources/jdbc.properties
+jdbc:mysql://localhost:3306/mxxssm_admin
+username: root
+password: 123456
 ```
 
-Example:
-
-```properties
-jdbc.driver=com.mysql.cj.jdbc.Driver
-jdbc.url=jdbc:mysql://localhost:3306/myssm_admin?characterEncoding=utf8
-jdbc.username=root
-jdbc.password=your_password
-jdbc.maxTotal=30
-jdbc.maxIdle=10
-jdbc.initialSize=5
-```
-
-The schema script inserts a default administrator:
-
-```text
-account: admin
-password: admin
-```
-
-Passwords are stored as BCrypt hashes. Old plain text or MD5 password data from earlier versions should be reset or recreated.
-
-Public registration only creates normal `USER` accounts. New administrator accounts should be created from the admin user management page after logging in as an administrator.
-
-## Run In IntelliJ IDEA With Smart Tomcat
-
-1. Open the project root directory in IDEA.
-2. Let IDEA import it as a Maven project.
-3. Install the Smart Tomcat plugin if you use IDEA Community Edition.
-4. Create a Smart Tomcat run configuration.
-5. Set Tomcat Server to Tomcat 8.5 or Tomcat 9.
-6. Set Deployment Directory to:
-
-   ```text
-   E:\MyProgram\MySSM\src\main\webapp
-   ```
-
-7. Set Context Path to:
-
-   ```text
-   /myssm
-   ```
-
-8. Use port `8080`, or change to `8081` if `8080` is occupied.
-9. Start Tomcat and visit:
-
-   ```text
-   http://localhost:8080/myssm
-   ```
-
-## Main Routes
-
-```text
-GET    /
-GET    /dashboard
-
-GET    /user/register
-POST   /api/public/users
-
-POST   /api/session
-DELETE /api/session
-GET    /api/captcha
-
-GET    /user/profile
-GET    /user/messages
-GET    /user/settings
-
-GET    /admin/users
-GET    /api/admin/users
-POST   /api/admin/users
-DELETE /api/admin/users
-
-GET    /admin/roles
-GET    /api/admin/roles
-POST   /api/admin/roles
-DELETE /api/admin/roles
-GET    /api/admin/roles/permissions
-POST   /api/admin/roles/permissions
-
-GET    /admin/menus
-GET    /api/admin/menus
-
-GET    /admin/permissions
-GET    /api/admin/permissions
-
-GET    /admin/login-logs
-GET    /api/admin/login-logs
-
-GET    /admin/operation-logs
-GET    /api/admin/operation-logs
-
-GET    /admin/configs
-GET    /api/admin/configs
-```
-
-## Authorization Model
-
-The application uses RBAC tables:
-
-- `sys_user`
-- `sys_role`
-- `sys_permission`
-- `sys_menu`
-- `sys_user_role`
-- `sys_role_permission`
-
-After login, the user's menus and permissions are loaded into the session. Admin and user accounts enter the same site, but the dashboard, sidebar, pages, and APIs are filtered by permission.
-
-Admin routes use `/admin/...` and `/api/admin/...`. User routes use `/user/...`. Public routes are limited to login, captcha, registration, and static assets.
-
-## Current System Pages
-
-- Users: create normal users or administrators
-- Roles: create/delete roles and assign permissions
-- Menus: view SQL-defined menu entries
-- Permissions: view SQL-defined route permissions
-- Login Logs: view login success/failure records
-- Operation Logs: view non-GET admin API operation records
-- Configs: view SQL-defined system config entries
-
-Menus, permissions, and configs are currently SQL-driven list pages. They are intentionally visible and standardized, but full CRUD for these tables can be added later if needed.
-
-## Build With Maven
-
-```bash
-mvn clean package
-```
-
-The generated WAR file is:
-
-```text
-target/myssm.war
-```
-
-Deploy it to Tomcat's `webapps` directory if you prefer manual deployment.
-
-## Common Issues
-
-### Address already in use: bind
-
-Port `8080` is already used.
-
-Check the process:
+The JDBC URL uses `createDatabaseIfNotExist=true`, so a local `root` account can
+create the schema automatically. Override credentials with environment variables:
 
 ```powershell
-netstat -ano | findstr :8080
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "your-password"
 ```
 
-Then either stop that process or change Tomcat to another port such as `8081`.
+```bash
+export DB_USERNAME=root
+export DB_PASSWORD=your-password
+```
 
-### Tomcat 10/11 does not work
+Flyway creates the tables and seed data on first start. The default administrator is:
 
-Use Tomcat 8.5 or Tomcat 9. This project depends on `javax.servlet.*`.
+```text
+username: admin
+password: Admin@123
+```
 
-### Database connection failed
+> Change this password after the first login. Passwords are stored as BCrypt hashes.
 
-Check:
+### 2. Run in development
 
-- MySQL is running
-- Database `myssm_admin` exists
-- `jdbc.username` and `jdbc.password` are correct
-- `database/schema.sql` has been executed
+```bash
+pnpm install
+pnpm dev
+```
 
-### Permission page redirects to login
+| Service | URL |
+| --- | --- |
+| SPA (Vite, hot reload) | http://localhost:5173 |
+| API | http://localhost:8081 |
+| Swagger UI | http://localhost:8081/swagger-ui.html |
+| Health | http://localhost:8081/actuator/health |
 
-Make sure the latest `database/schema.sql` has been executed. Route access depends on `sys_permission` and `sys_role_permission`.
+Vite proxies `/api` to the backend, so the browser talks to one origin.
 
-## Notes
+### 3. Build for production
 
-This is still a legacy SSM/JSP project. The current stage focuses on a clean generic admin foundation. A future migration path can be:
+```bash
+pnpm build
+java -jar backend/target/mxxssm.jar --spring.profiles.active=prod
+```
 
-- Convert the backend to Spring Boot
-- Replace JSP with Vue 3 + Vite + Element Plus
-- Replace the remaining custom JSON utilities with Jackson
-- Expand system configuration, menu management, and permission management into full CRUD modules
+> The `prod` profile marks the session cookie as `Secure`. If you are testing
+> over plain HTTP locally, add `--server.servlet.session.cookie.secure=false`
+> (Docker Compose already does this). Keep the secure cookie enabled behind TLS.
+
+`pnpm build` builds the SPA first and then the Spring Boot jar. The Maven
+`with-frontend` profile automatically copies `frontend/dist` into the jar when it
+exists.
+
+Production configuration is environment-driven:
+
+| Variable | Purpose |
+| --- | --- |
+| `SPRING_PROFILES_ACTIVE` | Set to `prod` |
+| `DB_URL` | JDBC URL |
+| `DB_USERNAME` / `DB_PASSWORD` | Database credentials |
+| `DB_POOL_SIZE` | Hikari maximum pool size (default 20) |
+| `LOG_FILE` | Log path (default `/app/logs/mxxssm.log`) |
+| `SPRINGDOC_ENABLED` | Enable Swagger in production (default `false`) |
+
+### 4. Docker Compose
+
+```bash
+cp .env.example .env
+# edit .env and set strong passwords
+docker compose up --build -d
+```
+
+The app is available at **http://localhost:8081**. MySQL is exposed on host port
+`3307` to avoid clashing with a local MySQL on `3306`.
+
+---
+
+## Feature map
+
+| Area | Capabilities |
+| --- | --- |
+| Authentication | Login, logout, captcha, public registration, current-user endpoint, session fixation protection |
+| Users | Search/filter, pagination, create/edit/delete, role assignment, status management, last-admin protection |
+| Roles | CRUD, built-in role protection, user counts, permission assignment |
+| Permissions | CRUD, usage protection (roles/menus), code validation |
+| Menus | CRUD, sidebar grouping, icon, sort order, permission requirement |
+| Audit | Login logs (success/failure, IP, user agent), operation logs (action, path, duration, outcome) |
+| Configuration | Runtime key/value settings, used by captcha and registration switches |
+| Dashboard | User/role/permission counts, today's login and operation metrics, recent sign-ins |
+| Personal area | Profile editing, password change, language and theme preferences |
+
+---
+
+## API overview
+
+All endpoints live under `/api/v1`. Successful responses use:
+
+```json
+{
+  "success": true,
+  "code": "OK",
+  "message": "OK",
+  "data": {}
+}
+```
+
+Errors use proper HTTP status codes with the same envelope:
+
+```json
+{
+  "success": false,
+  "code": "VALIDATION_ERROR",
+  "message": "Please correct the highlighted fields.",
+  "data": [{ "field": "password", "message": "Password must be 8-64 characters." }]
+}
+```
+
+Paged endpoints return:
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "page": 1,
+  "size": 10,
+  "totalPages": 0
+}
+```
+
+Key routes:
+
+| Method | Path | Permission |
+| --- | --- | --- |
+| `POST` | `/api/v1/auth/login` | public |
+| `POST` | `/api/v1/auth/logout` | authenticated |
+| `GET` | `/api/v1/auth/me` | authenticated |
+| `POST` | `/api/v1/auth/register` | public |
+| `GET` | `/api/v1/auth/captcha` | public |
+| `GET` | `/api/v1/auth/csrf` | public |
+| `PUT` | `/api/v1/auth/profile` | `user:profile:update` |
+| `PUT` | `/api/v1/auth/password` | `user:password:update` |
+| `GET/POST` | `/api/v1/admin/users` | `admin:user:read` / `admin:user:create` |
+| `PUT/DELETE` | `/api/v1/admin/users/{id}` | `admin:user:update` / `admin:user:delete` |
+| `GET/POST` | `/api/v1/admin/roles` | `admin:role:read` / `admin:role:create` |
+| `GET/POST` | `/api/v1/admin/menus` | `admin:menu:read` / `admin:menu:create` |
+| `GET/POST` | `/api/v1/admin/permissions` | `admin:permission:read` / `admin:permission:create` |
+| `GET` | `/api/v1/admin/logs/login` | `admin:log:login:read` |
+| `GET` | `/api/v1/admin/logs/operation` | `admin:log:operation:read` |
+| `GET/POST` | `/api/v1/admin/configs` | `admin:config:read` / `admin:config:create` |
+| `GET` | `/api/v1/dashboard` | `admin:dashboard:read` |
+
+See [docs/api.md](docs/api.md) for the full table and request examples.
+
+### CSRF for API clients
+
+The SPA uses the double-submit cookie pattern:
+
+1. `GET /api/v1/auth/csrf` sets the `XSRF-TOKEN` cookie.
+2. Send the cookie value in the `X-XSRF-TOKEN` header on unsafe requests.
+3. Send cookies with `withCredentials` / `credentials: "include"`.
+4. The API retries once automatically after refreshing an expired token.
+
+---
+
+## Security model
+
+- **Session authentication** — an HTTP-only `MXXSSM_SESSION` cookie; no JWT storage in the browser.
+- **CSRF** — `CookieCsrfTokenRepository` with a SPA-aware request handler. Logout invalidates the session and a new token is issued.
+- **Password hashing** — BCrypt with cost 12.
+- **RBAC** — permission codes are granted as Spring Security authorities through active roles. Controllers use `@PreAuthorize("hasAuthority('...')")`.
+- **Menus** — returned only when the current user holds the menu's permission code.
+- **Dashboard data** — global metrics require `admin:dashboard:read`; standard users see a personal shortcut panel instead.
+- **Account status** — disabled accounts cannot log in; disabling/deleting the last active administrator is blocked.
+- **Audit** — login failures are recorded even when authentication fails; `@AuditLog` actions use `REQUIRES_NEW` so an audit row survives a failed business transaction.
+- **Session staleness** — role/permission changes take effect on the next login for existing sessions. This is an intentional trade-off for a small monolith; add a permission cache/version if you need instant revocation.
+
+---
+
+## Database and migrations
+
+- Flyway owns the schema. Hibernate runs with `ddl-auto=validate`.
+- Migrations: `backend/src/main/resources/db/migration/V1__init.sql`, `V2__seed.sql`.
+- Tables: `sys_user`, `sys_role`, `sys_permission`, `sys_menu`, `sys_user_role`, `sys_role_permission`, `sys_login_log`, `sys_operation_log`, `sys_config`.
+- The seed creates roles `ADMIN`/`USER`, 29 permissions, 9 menus, 4 config entries and the `admin` account.
+
+To reset a local database:
+
+```sql
+DROP DATABASE mxxssm_admin;
+```
+
+Then restart the application; Flyway recreates everything.
+
+---
+
+## Development scripts
+
+| Command | Description |
+| --- | --- |
+| `pnpm dev` | Run API + Vite dev server together |
+| `pnpm dev:api` | Run only Spring Boot |
+| `pnpm dev:web` | Run only Vite |
+| `pnpm build` | Build SPA and the single executable jar |
+| `pnpm test` | Backend + frontend tests |
+| `pnpm test:api` | Backend tests (H2 + MockMvc + ArchUnit) |
+| `pnpm test:web` | Vitest unit tests |
+| `pnpm lint` | ESLint |
+| `pnpm format` | Prettier |
+
+---
+
+## Testing
+
+- **Backend** — 14 tests: full login/CSRF/RBAC/user-CRUD flow against H2 with Flyway, plus ArchUnit architecture rules.
+- **Frontend** — 9 Vitest unit tests for access checks, menu grouping and formatting.
+
+```bash
+pnpm test
+```
+
+The backend test profile (`application-test.yml`) uses in-memory H2 in MySQL mode,
+so Docker is not required for tests.
+
+---
+
+## Repository conventions
+
+- Backend code is organized by **feature module**, not by layer.
+- Controllers do not talk to repositories; services own transactions and JPA access.
+- DTOs are Java records; entities stay inside the module.
+- All API errors pass through `GlobalExceptionHandler`.
+- Frontend uses typed API modules and a single Axios instance; views do not call `axios` directly.
+- Permission changes are made in the database/UI and reflected in menus after the next login.
+
+More detail: [docs/architecture.md](docs/architecture.md).
+
+---
+
+## Migration from the legacy SSM version
+
+| Legacy | Now |
+| --- | --- |
+| Spring MVC XML + `web.xml` | Spring Boot auto-configuration |
+| WAR on Tomcat 8.5/9 | Executable jar with embedded Tomcat 10.1 |
+| JSP + JSTL + jQuery | Vue 3 SPA + Element Plus |
+| MyBatis XML mappers | Spring Data JPA + specifications |
+| Manual token cookie + interceptor | Spring Security session + CSRF + method security |
+| `applicationContext.xml` data source | `application.yml` + HikariCP |
+| Hand-written SQL schema | Flyway versioned migrations |
+| Custom JSON utilities | Jackson + typed response envelope |
+| Manual page/table JavaScript | Typed API modules + Element Plus tables |
+
+The legacy source is preserved in git history.
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+| --- | --- |
+| `Port 8081 already in use` | Change `server.port` or stop the other process |
+| `Access denied` from MySQL | Set `DB_USERNAME`/`DB_PASSWORD`; ensure the user can create the database |
+| Frontend login says CSRF invalid | Open the app through one origin (Vite proxy or the jar), not by mixing ports |
+| Flyway validation error | Do not edit applied migration files; add a new `V3__...sql` migration |
+| Swagger missing in production | Set `SPRINGDOC_ENABLED=true` (dev is enabled by default) |
+| Tests fail on H2 | Run `pnpm test:api`; the test profile uses a separate in-memory database |
+
+---
+
+## License
+
+[MIT](LICENSE)

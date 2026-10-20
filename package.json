@@ -1,0 +1,26 @@
+{
+  "name": "mxxssm",
+  "version": "2.0.0",
+  "private": true,
+  "description": "MXXSSM - modern Spring Boot + Vue 3 monolith",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"mvn -f backend/pom.xml spring-boot:run\" \"pnpm --dir frontend dev\"",
+    "dev:api": "mvn -f backend/pom.xml spring-boot:run",
+    "dev:web": "pnpm --dir frontend dev",
+    "build": "pnpm --dir frontend build && mvn -f backend/pom.xml clean package",
+    "build:api": "mvn -f backend/pom.xml clean package",
+    "build:web": "pnpm --dir frontend build",
+    "test": "mvn -f backend/pom.xml test && pnpm --dir frontend test",
+    "test:api": "mvn -f backend/pom.xml test",
+    "test:web": "pnpm --dir frontend test",
+    "lint": "pnpm --dir frontend lint",
+    "format": "pnpm --dir frontend format"
+  },
+  "devDependencies": {
+    "concurrently": "10.0.6"
+  }
+}

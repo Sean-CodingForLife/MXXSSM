@@ -1,12 +1,36 @@
+# Build output
 target/
-
-.vscode/
-.idea/
-.smarttomcat/
-
+dist/
 *.class
+*.jar
 *.war
 *.ear
-*.jar
-
 *.log
+
+# Node
+node_modules/
+.pnpm-store/
+coverage/
+*.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+.smarttomcat/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local configuration and secrets
+.env
+.env.local
+application-local.yml
+application-local.yaml
+application-local.properties
+
+# Runtime data
+data/
+logs/
+uploads/
