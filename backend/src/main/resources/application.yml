@@ -1,0 +1,102 @@
+spring:
+  application:
+    name: mxxssm
+  profiles:
+    default: dev
+  datasource:
+    hikari:
+      pool-name: mxxssm-pool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_batch_fetch_size: 50
+        jdbc.time_zone: Asia/Shanghai
+        order_inserts: true
+        order_updates: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+  web:
+    locale: zh_CN
+    locale-resolver: accept-header
+  mvc:
+    problemdetails:
+      enabled: false
+    throw-exception-if-no-handler-found: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
+server:
+  port: 8081
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,application/json,image/svg+xml
+  error:
+    include-message: never
+    include-stacktrace: never
+    whitelabel:
+      enabled: false
+  servlet:
+    session:
+      timeout: 8h
+      cookie:
+        name: MXXSSM_SESSION
+        http-only: true
+        same-site: lax
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  default-produces-media-type: application/json
+
+app:
+  captcha:
+    enabled: true
+    ttl-seconds: 120
+    width: 132
+    height: 44
+  registration:
+    enabled: true
+  password:
+    min-length: 8
+    max-length: 64
+  security:
+    max-failed-logins: 1
+
+logging:
+  level:
+    root: INFO
+    com.mxxssm: INFO
+  pattern:
+    level: "%5p [%X{requestId:-}]"
