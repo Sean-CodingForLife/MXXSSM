@@ -27,11 +27,19 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     chunkSizeWarningLimit: 1200,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          'vue-vendor': ['vue', 'vue-router', 'pinia', 'vue-i18n', 'axios'],
-          'element-plus': ['element-plus', '@element-plus/icons-vue'],
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vue-vendor',
+              test: /[\\/]node_modules[\\/](vue|@vue|vue-router|pinia|vue-i18n|@intlify|axios)[\\/]/,
+            },
+            {
+              name: 'element-plus',
+              test: /[\\/]node_modules[\\/](element-plus|@element-plus)[\\/]/,
+            },
+          ],
         },
       },
     },
